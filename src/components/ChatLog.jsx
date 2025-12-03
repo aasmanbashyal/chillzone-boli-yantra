@@ -4,9 +4,14 @@ const ChatLog = ({ selectedCharacterName, messages, onSendMessage, recipient, on
     const [input, setInput] = useState('');
 
     const handleSend = () => {
+        console.log('ChatLog handleSend called, input:', input);
         if (input.trim()) {
+            console.log('Calling onSendMessage with:', input);
             onSendMessage(input);
             setInput('');
+            console.log('Input cleared');
+        } else {
+            console.log('Input is empty, not sending');
         }
     };
 
@@ -62,8 +67,16 @@ const ChatLog = ({ selectedCharacterName, messages, onSendMessage, recipient, on
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
+                    disabled={false}
                 />
-                <button className="btn" style={{ padding: '0.5rem 1rem' }} onClick={handleSend}>➤</button>
+                <button 
+                    className="btn" 
+                    style={{ padding: '0.5rem 1rem' }} 
+                    onClick={handleSend}
+                    disabled={false}
+                >
+                    ➤
+                </button>
             </div>
         </div>
     );

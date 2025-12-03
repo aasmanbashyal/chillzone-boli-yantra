@@ -6,118 +6,132 @@ import VoiceCore from './components/VoiceCore';
 import ChatLog from './components/ChatLog';
 
 const App = () => {
-  const [selectedCharId, setSelectedCharId] = useState('aasman');
-  const [recipient, setRecipient] = useState('Kamal');
-  const [messages, setMessages] = useState([
-    { sender: 'YOU', time: '16:35', text: "Sending 'Older Version' audio", recipient: 'Kamal' },
-    { sender: 'YOU', time: '14:35', text: "Sending 'Older Version' audio", recipient: 'Kamal' },
-  ]);
+    const [selectedCharacterId, setSelectedCharacterId] = useState(null);
+    const [messages, setMessages] = useState([]);
+    const [recipient, setRecipient] = useState('Kamal');
+    const [isRecording, setIsRecording] = useState(false);
+    const [isActivated, setIsActivated] = useState(false);
+    const [isEngaged, setIsEngaged] = useState(false);
+    const [ttsReady, setTtsReady] = useState(false);
+    const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
 
-  const characters = [
-    { id: 'aasman', name: 'Aasman', image: '/characters/Aasman.png' },
-    { id: 'kamal', name: 'Kamal', image: '/characters/Kamal.png' },
-    { id: 'prashant', name: 'Prashant', image: '/characters/Prashant.png' },
-    { id: 'ujjwal', name: 'Ujjwal', image: '/characters/Ujjwal.png' },
-  ];
+    const characters = [
+        { id: 1, name: 'Kamal', image: '/characters/Kamal.png' },
+        { id: 2, name: 'Aasman', image: '/characters/Aasman.png' },
+        { id: 3, name: 'Prashant', image: '/characters/Prashant.png' },
+        { id: 4, name: 'Ujjwal', image: '/characters/Ujjwal.png' },
+    ];
 
-  const selectedCharacter = characters.find(c => c.id === selectedCharId);
+    const selectedCharacter = characters.find(c => c.id === selectedCharacterId);
 
-  // Play audio when character changes or engage is clicked
-  const playAudio = (charName) => {
-    if (!charName) return;
-    const audioPath = `/audio/${charName}.wav`;
-    console.log(`Attempting to play: ${audioPath}`);
-    const audio = new Audio(audioPath);
+    // Initialize TTS model on mount - preload for faster first use
+    useEffect(() => {
+        const initTTS = async () => {
+            try {
+                console.log('Pre-initializing TTS model for faster first use...');
+                // Use dynamic import for code splitting
+                const { initializeTTS } = await import('./utils/tts');
+                await initializeTTS();
+                setTtsReady(true);
+                console.log('TTS model pre-initialized and ready');
+            } catch (error) {
+                console.error('Failed to pre-initialize TTS:', error);
+                // Don't set ready state if initialization fails
+                // It will be initialized on-demand when needed
+            }
+        };
+        // Initialize in background without blocking UI
+        initTTS();
+    }, []);
 
-    audio.play()
-      .then(() => console.log("Audio playing successfully"))
-      .catch(err => {
-        console.error("Audio playback failed:", err);
-      });
-  };
+    const handleSendMessage = async (text) => {
+        console.log('=== handleSendMessage called ===', { text, textLength: text?.length });
+        
+        if (!text || !text.trim()) {
+            console.warn('Empty text, returning early');
+            return;
+        }
 
-  const handleCharacterSelect = (id) => {
-    setSelectedCharId(id);
-    const char = characters.find(c => c.id === id);
-    if (char) {
-      setRecipient(char.name);
-    }
-  };
+        console.log('Adding message to chat log...');
+        const now = new Date();
+        const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        
+        const newMessage = {
+            text,
+            sender: selectedCharacter?.name || 'Unknown',
+            recipient,
+            time,
+        };
 
-  useEffect(() => {
-    if (selectedCharacter) {
-      playAudio(selectedCharacter.name);
-    }
-  }, [selectedCharId]);
+        console.log('Message object:', newMessage);
+        setMessages(prev => {
+            const updated = [...prev, newMessage];
+            console.log('Messages updated, count:', updated.length);
+            return updated;
+        });
 
-  const handleSendMessage = (text) => {
-    const now = new Date();
-    const timeString = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
-    const charName = selectedCharacter ? selectedCharacter.name : 'Unknown';
-
-    const newMessage = {
-      sender: charName,
-      time: timeString,
-      text: text,
-      recipient: recipient,
-      audioName: charName
+        // Generate audio for the message
+        setIsGeneratingAudio(true);
+        
+        try {
+            // Import TTS utilities (lazy load)
+            const { generateAndPlayAudio, getVoiceForCharacter } = await import('./utils/tts');
+            
+            // Get voice ID based on selected character - each character has their own voice
+            const characterName = selectedCharacter?.name || 'Kamal';
+            const voiceId = getVoiceForCharacter(characterName);
+            
+            // Generate and play audio (non-blocking)
+            await generateAndPlayAudio(text, voiceId);
+        } catch (error) {
+            console.error('TTS Error:', error);
+            alert('Failed to generate audio: ' + (error?.message || 'Unknown error'));
+        } finally {
+            setIsGeneratingAudio(false);
+        }
     };
 
-    setMessages([newMessage, ...messages]);
-    playAudio(charName);
-  };
+    const handleEngage = () => {
+        setIsEngaged(!isEngaged);
+    };
 
-  const [isEngaged, setIsEngaged] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [isActivated, setIsActivated] = useState(false);
+    const handleRecord = () => {
+        setIsRecording(!isRecording);
+    };
 
-  const handleEngage = () => {
-    console.log("Engage Voice clicked");
-    setIsEngaged(true);
-    setTimeout(() => setIsEngaged(false), 200);
-    if (selectedCharacter) {
-      playAudio(selectedCharacter.name);
-    }
-  };
+    const handleActivate = () => {
+        setIsActivated(!isActivated);
+    };
 
-  const handleRecord = () => {
-    console.log("Record clicked");
-    setIsRecording(!isRecording);
-  };
-
-  const handleActivate = () => {
-    console.log("Activate clicked");
-    setIsActivated(!isActivated);
-  };
-
-  return (
-    <div className="app-container">
-      <Header />
-      <div className="main-content">
-        <CharacterSelector
-          characters={characters}
-          selectedId={selectedCharId}
-          onSelect={handleCharacterSelect}
-        />
-        <VoiceCore
-          onEngage={handleEngage}
-          onRecord={handleRecord}
-          onActivate={handleActivate}
-          isRecording={isRecording}
-          isActivated={isActivated}
-          isEngaged={isEngaged}
-        />
-        <ChatLog
-          selectedCharacterName={selectedCharacter?.name}
-          messages={messages}
-          onSendMessage={handleSendMessage}
-          recipient={recipient}
-          onRecipientChange={setRecipient}
-        />
-      </div>
-      <Footer />
-    </div>
-  );
+    return (
+        <div className="app-container">
+            <Header />
+            <div className="main-content">
+                <CharacterSelector
+                    characters={characters}
+                    selectedId={selectedCharacterId}
+                    onSelect={setSelectedCharacterId}
+                />
+                <VoiceCore
+                    onEngage={handleEngage}
+                    onRecord={handleRecord}
+                    onActivate={handleActivate}
+                    isRecording={isRecording}
+                    isActivated={isActivated}
+                    isEngaged={isEngaged}
+                />
+                <ChatLog
+                    selectedCharacterName={selectedCharacter?.name}
+                    messages={messages}
+                    onSendMessage={handleSendMessage}
+                    recipient={recipient}
+                    onRecipientChange={setRecipient}
+                />
+            </div>
+            <Footer ttsReady={ttsReady} isGeneratingAudio={isGeneratingAudio} />
+        </div>
+    );
 };
 
 export default App;
+
