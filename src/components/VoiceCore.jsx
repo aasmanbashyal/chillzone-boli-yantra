@@ -1,159 +1,27 @@
-import React, { useEffect, useRef } from 'react';
-
-const VoiceCore = ({ onEngage, onRecord, onActivate, isRecording, isActivated, isEngaged }) => {
-    const canvasRef = useRef(null);
-
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        let animationId;
-
-        const draw = () => {
-            const width = canvas.width;
-            const height = canvas.height;
-
-            ctx.clearRect(0, 0, width, height);
-
-            // Draw grid lines
-            ctx.strokeStyle = 'rgba(0, 240, 255, 0.1)';
-            ctx.lineWidth = 1;
-
-            // Draw waveform
-            ctx.beginPath();
-            ctx.moveTo(0, height / 2);
-
-            for (let i = 0; i < width; i++) {
-                // Modulate amplitude based on recording state
-                const baseAmp = isRecording ? 80 : 50;
-                const speed = isRecording ? 0.1 : 0.05;
-                const amplitude = baseAmp * Math.sin(i * speed + Date.now() * 0.005) * Math.sin(i * 0.01);
-                ctx.lineTo(i, height / 2 + amplitude);
-            }
-
-            ctx.strokeStyle = isRecording ? '#ff4444' : '#00f0ff';
-            ctx.lineWidth = 2;
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = isRecording ? '#ff4444' : '#00f0ff';
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-
-            // Mirror reflection
-            ctx.beginPath();
-            ctx.moveTo(0, height / 2);
-            for (let i = 0; i < width; i++) {
-                const baseAmp = isRecording ? 80 : 50;
-                const speed = isRecording ? 0.1 : 0.05;
-                const amplitude = baseAmp * Math.sin(i * speed + Date.now() * 0.005) * Math.sin(i * 0.01);
-                ctx.lineTo(i, height / 2 - amplitude * 0.2); // Faint reflection
-            }
-            ctx.strokeStyle = isRecording ? 'rgba(255, 68, 68, 0.2)' : 'rgba(0, 240, 255, 0.2)';
-            ctx.stroke();
-
-            animationId = requestAnimationFrame(draw);
-        };
-
-        // Set canvas size
-        const resize = () => {
-            if (canvas.parentElement) {
-                canvas.width = canvas.parentElement.clientWidth;
-                canvas.height = canvas.parentElement.clientHeight;
-            }
-        };
-
-        window.addEventListener('resize', resize);
-        resize();
-        draw();
-
-        return () => {
-            window.removeEventListener('resize', resize);
-            cancelAnimationFrame(animationId);
-        };
-    }, [isRecording]);
-
-    return (
-        <div className="panel voice-core">
-            <div className="panel-header">Voice Modulation Core</div>
-
-            <div style={{ fontSize: '0.8rem', color: 'var(--color-text-dim)', textTransform: 'uppercase' }}>Input Audio</div>
-            <div className="visualizer-container" style={{ borderColor: isRecording ? '#ff4444' : 'var(--color-border)' }}>
-                <canvas ref={canvasRef} className="waveform-canvas"></canvas>
-            </div>
-
-            <div className="controls-container">
-                <div className="slider-group">
-                    <div className="slider-control">
-                        <div className="slider-label">
-                            <span>Pitch Shift</span>
-                            <span>0</span>
-                        </div>
-                        <input type="range" min="-100" max="100" defaultValue="0" />
-                        <div className="slider-label" style={{ marginTop: '0.2rem', fontSize: '0.7rem', opacity: 0.6 }}>
-                            <span>-Low</span>
-                            <span>High</span>
-                        </div>
-                    </div>
-                    <div className="slider-control">
-                        <div className="slider-label">
-                            <span>Resonance</span>
-                        </div>
-                        <input type="range" min="0" max="100" defaultValue="50" />
-                        <div className="slider-label" style={{ marginTop: '0.2rem', fontSize: '0.7rem', opacity: 0.6 }}>
-                            <span>Low</span>
-                            <span>High</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className={`generation-panel ${isActivated ? 'active' : ''}`} style={{
-                    borderColor: isActivated ? 'var(--color-primary)' : 'var(--color-secondary)',
-                    boxShadow: isActivated ? '0 0 15px rgba(0, 240, 255, 0.2)' : 'none'
-                }}>
-                    <div style={{ flex: 1 }}>
-                        <div className="slider-label">Older Version Generation</div>
-                        <input type="range" style={{ width: '100%' }} />
-                    </div>
-                    <button
-                        className={`btn ${isActivated ? 'active' : ''}`}
-                        onClick={onActivate}
-                        style={{
-                            background: isActivated ? 'var(--color-primary)' : 'transparent',
-                            color: isActivated ? 'var(--color-bg)' : 'var(--color-primary)'
-                        }}
-                    >
-                        {isActivated ? 'ACTIVE' : 'ACTIVATE'}
-                    </button>
-                </div>
-
-                <div className="engage-button-container">
-                    <button
-                        className="engage-btn"
-                        onClick={onEngage}
-                        style={{
-                            transform: isEngaged ? 'scale(0.95)' : 'scale(1)',
-                            boxShadow: isEngaged ? '0 0 50px var(--color-primary)' : undefined
-                        }}
-                    >
-                        Engage<br />Voice
-                    </button>
-                    <button
-                        className={`btn btn-secondary ${isRecording ? 'recording' : ''}`}
-                        style={{
-                            height: '50px',
-                            borderRadius: '25px',
-                            padding: '0 2rem',
-                            background: isRecording ? '#ff4444' : 'transparent',
-                            borderColor: isRecording ? '#ff4444' : 'var(--color-secondary)',
-                            color: isRecording ? 'white' : 'var(--color-secondary)',
-                            boxShadow: isRecording ? '0 0 20px rgba(255, 68, 68, 0.5)' : 'none'
-                        }}
-                        onClick={onRecord}
-                    >
-                        {isRecording ? 'RECORDING' : 'RECORD'}
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-export default VoiceCore;
+export default function VoiceCore({ script, onScript, voice, voices, onVoice, onSpeak, onStop, busy, playback, engineState, error, onVolume, onSpeed }) {
+  const active = busy || playback.status === 'playing' || playback.status === 'loading';
+  const phaseText = {
+    idle: 'Synthesis ready', starting: 'Starting speech engine', downloading: 'Downloading voice model ' + engineState.percent + '%',
+    initializing: 'Initializing speech engine', synthesizing: 'Generating speech', ready: 'Speech prepared', error: 'Synthesis needs attention',
+  }[engineState.phase];
+  const outputText = { idle: 'Output idle', loading: 'Loading audio', playing: 'Audio playing', ended: 'Playback complete', error: 'Playback needs attention' }[playback.status];
+  return (
+    <section className="panel voice-core" aria-labelledby="synthesis-heading">
+      <div className="panel-header"><span className="eyebrow">Channel 02</span><h2 id="synthesis-heading">Neural voice synthesis</h2></div>
+      <div className={'visualizer ' + (active ? 'is-active' : '')} aria-hidden="true">
+        {Array.from({ length: 40 }, (_, index) => <i key={index} style={{ '--bar-height': (15 + ((index * 37) % 75)) + '%', '--bar-delay': (index * -0.07) + 's' }} />)}
+        <span className="waveform-label">{active ? 'SIGNAL ACTIVE' : 'AWAITING SIGNAL'}</span>
+      </div>
+      <div className="speech-input"><label htmlFor="speech-script">Speech script <span>{script.length}/500</span></label>
+        <textarea id="speech-script" maxLength="500" rows="4" value={script} onChange={event => onScript(event.target.value)} placeholder="Type a line to speak..." />
+      </div>
+      <div className="synthesis-controls"><div><label htmlFor="synthesis-voice">Synthesis voice · English</label><select id="synthesis-voice" value={voice} onChange={event => onVoice(event.target.value)}>{voices.map(item => <option key={item.voiceId} value={item.voiceId}>{item.displayName || item.voiceId}</option>)}</select></div>
+        <div><label htmlFor="playback-speed">Playback speed</label><select id="playback-speed" value={playback.speed} onChange={event => onSpeed(Number(event.target.value))}><option value="0.75">0.75×</option><option value="1">1× Normal</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option></select></div></div>
+      <div className="volume-control"><label htmlFor="volume">Output level <span>{Math.round(playback.volume * 100)}%</span></label><input id="volume" type="range" min="0" max="1" step="0.05" value={playback.volume} onChange={event => onVolume(Number(event.target.value))} /></div>
+      <div className="engine-status" role="status" aria-live="polite">{busy ? phaseText : outputText}</div>
+      {(error || playback.error) && <p className="playback-error" role="alert">{error || playback.error}</p>}
+      <div className="speech-actions"><button className="engage-btn" type="button" disabled={busy || !script.trim()} onClick={onSpeak}><span aria-hidden="true">▶</span>{busy ? 'Generating...' : 'Speak text'}</button><button className="btn stop-btn" type="button" disabled={!active} onClick={onStop}>Stop output</button></div>
+      <p className="panel-note download-note">First use downloads an 87 MB English voice model plus a 22 MB engine. Speech is generated on this device.</p>
+    </section>
+  );
+}
